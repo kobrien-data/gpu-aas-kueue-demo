@@ -1,0 +1,16 @@
+# -----------------------------------------------------------------------------
+# Demo namespace.
+# -----------------------------------------------------------------------------
+# The label kueue.openshift.io/managed=true opts this namespace into the Kueue
+# operator's admission webhooks, so any Job / RayJob / PyTorchJob created here is
+# intercepted, suspended, and admitted by Kueue according to quota.
+#
+# (If you create the project from the OpenShift AI dashboard with Kueue enabled,
+#  this label is applied for you.)
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: gpu-aas-demo
+  labels:
+    kueue.openshift.io/managed: "true"

@@ -1,0 +1,44 @@
+# -----------------------------------------------------------------------------
+# Kueue CR — tells the operator to deploy the Kueue controller and which
+# workload frameworks Kueue should manage.
+# -----------------------------------------------------------------------------
+# For this demo we enable:
+#   BatchJob    -> the plain training Job (demo 1)
+#   RayCluster  -> the Ray cluster created by the CodeFlare SDK (demo 2)
+#   RayJob      -> the RayJob resource (demo 2, ephemeral-cluster path)
+#   PyTorchJob  -> Kubeflow Training Operator PyTorchJob (demo 3)
+#
+# IMPORTANT PREREQUISITES for the Ray/PyTorch integrations to actually work:
+#   - RayCluster/RayJob require the KubeRay operator on the cluster.
+#   - PyTorchJob requires the Kubeflow Training Operator on the cluster.
+#   Both are provided by Red Hat OpenShift AI when you enable the distributed
+#   workloads components (codeflare, kueue, ray, trainingoperator) in the
+#   DataScienceCluster. Install those before relying on demos 2 and 3.
+#
+# The framework enum names are validated by the operator webhook. If apply is
+# rejected, list the accepted values with:
+#   oc explain kueue.spec.config.integrations.frameworks
+#
+# Apply:  oc apply -f 02-kueue-cr.yaml
+# Verify: oc get pods -n openshift-kueue-operator
+#         -> expect kueue-controller-manager-... Running
+#         oc get kueue cluster -o jsonpath='{.status}{"\n"}'
+# -----------------------------------------------------------------------------
+apiVersion: kueue.openshift.io/v1
+kind: Kueue
+metadata:
+  name: cluster
+  namespace: openshift-kueue-operator
+spec:
+  managementState: Managed
+  config:
+    integrations:
+      frameworks:
+        - BatchJob
+        - RayCluster
+        - RayJob
+        - PyTorchJob
+    # Optional: uncomment to use fair sharing instead of the default classical
+    # preemption policy.
+    # preemption:
+    #   preemptionPolicy: FairSharing

@@ -1,0 +1,19 @@
+# -----------------------------------------------------------------------------
+# LocalQueue — the namespaced entry point users submit to.
+# -----------------------------------------------------------------------------
+# Workloads reference this queue by name via the label
+#   kueue.x-k8s.io/queue-name: gpu-local-queue
+# and it forwards them to the cluster-wide gpu-cluster-queue for admission.
+#
+# The default-queue annotation lets the CodeFlare SDK auto-discover this queue
+# (so you don't have to pass local_queue=... explicitly, though the demos do).
+# -----------------------------------------------------------------------------
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: LocalQueue
+metadata:
+  name: gpu-local-queue
+  namespace: gpu-aas-demo
+  annotations:
+    kueue.x-k8s.io/default-queue: "true"
+spec:
+  clusterQueue: gpu-cluster-queue

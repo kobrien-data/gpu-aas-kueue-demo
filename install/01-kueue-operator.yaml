@@ -1,0 +1,44 @@
+# -----------------------------------------------------------------------------
+# Red Hat build of Kueue Operator
+# -----------------------------------------------------------------------------
+# Installs the operator cluster-wide (AllNamespaces mode). The operator itself
+# lives in openshift-kueue-operator but the Kueue controller it deploys watches
+# the whole cluster.
+#
+# NOTE: The embedded Kueue that used to ship inside OpenShift AI is deprecated.
+#       Do NOT run both — they fight over the same CRDs. If you previously
+#       enabled the OpenShift AI embedded Kueue, set that component's
+#       managementState to Removed in the DataScienceCluster first.
+#
+# Before applying, confirm the package name + channel available in your catalog:
+#   oc get packagemanifests -n openshift-marketplace | grep -i kueue
+#
+# Apply:  oc apply -f 01-kueue-operator.yaml
+# Verify: oc get pods -n openshift-kueue-operator
+#         -> expect kueue-operator-... Running (operator)
+# -----------------------------------------------------------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: openshift-kueue-operator
+  labels:
+    openshift.io/cluster-monitoring: "true"
+---
+apiVersion: operators.coreos.com/v1
+kind: OperatorGroup
+metadata:
+  name: openshift-kueue-operator
+  namespace: openshift-kueue-operator
+spec: {}   # empty = AllNamespaces install mode
+---
+apiVersion: operators.coreos.com/v1alpha1
+kind: Subscription
+metadata:
+  name: kueue-operator
+  namespace: openshift-kueue-operator
+spec:
+  channel: stable-v1        # verify with: oc get packagemanifests kueue-operator -o jsonpath='{.status.channels[*].name}'
+  name: kueue-operator      # verify exact package name in your catalog (see note above)
+  source: redhat-operators
+  sourceNamespace: openshift-marketplace
+  installPlanApproval: Automatic

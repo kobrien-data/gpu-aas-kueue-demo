@@ -1,0 +1,39 @@
+# -----------------------------------------------------------------------------
+# ClusterQueue — the cluster-wide resource budget for GPU-as-a-Service.
+# -----------------------------------------------------------------------------
+# This single queue owns the entire capacity of the 4 dedicated GPU nodes.
+# Kueue admits a workload only when its cpu + memory + nvidia.com/gpu requests
+# all fit inside the nominalQuota below; otherwise the workload waits (Pending)
+# until earlier ones finish. That queueing behaviour is the core of the demo.
+#
+# ---- SIZE THE QUOTA TO YOUR HARDWARE ----------------------------------------
+# Set nominalQuota to the TOTAL across all 4 nodes. Example below assumes each
+# node has 8 GPUs / 96 CPU / 384Gi (4 x 8 = 32 GPUs). Adjust to your real specs:
+#   oc get nodes -l nvidia.com/gpu.present=true \
+#     -o custom-columns=NODE:.metadata.name,GPU:.status.capacity.'nvidia\.com/gpu',CPU:.status.capacity.cpu,MEM:.status.capacity.memory
+#
+# NOTE: you MUST cover cpu and memory too, not just the GPU. A ClusterQueue that
+#       only budgets nvidia.com/gpu will never admit a pod that also requests
+#       cpu/memory (which every pod does).
+# -----------------------------------------------------------------------------
+apiVersion: kueue.x-k8s.io/v1beta1
+kind: ClusterQueue
+metadata:
+  name: gpu-cluster-queue
+spec:
+  namespaceSelector: {}          # {} = every namespace may borrow from this queue via its LocalQueue
+  # Take-all reclaim/preemption so waiting jobs can reclaim idle capacity.
+  preemption:
+    reclaimWithinCohort: Never
+    withinClusterQueue: LowerPriority
+  resourceGroups:
+    - coveredResources: ["cpu", "memory", "nvidia.com/gpu"]
+      flavors:
+        - name: gpu-flavor
+          resources:
+            - name: "cpu"
+              nominalQuota: "384"        # <-- 4 nodes x ~96 CPU. ADJUST.
+            - name: "memory"
+              nominalQuota: "1536Gi"     # <-- 4 nodes x ~384Gi.  ADJUST.
+            - name: "nvidia.com/gpu"
+              nominalQuota: "32"         # <-- 4 nodes x 8 GPUs.   ADJUST.

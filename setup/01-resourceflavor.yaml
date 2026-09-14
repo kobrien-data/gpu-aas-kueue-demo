@@ -1,0 +1,29 @@
+# -----------------------------------------------------------------------------
+# ResourceFlavor — describes the pool of hardware Kueue is allowed to hand out.
+# -----------------------------------------------------------------------------
+# We model the 4 GPU nodes that are dedicated exclusively to GPU-as-a-Service.
+#
+# nodeLabels: Kueue will inject a nodeAffinity onto every admitted pod so it
+#             only lands on nodes carrying these labels. Point this at whatever
+#             uniquely identifies your 4 GPU nodes:
+#               - nvidia.com/gpu.present=true  is added automatically by the
+#                 NVIDIA GPU Operator / node-feature-discovery, OR
+#               - apply your own label to exactly those 4 nodes, e.g.:
+#                   oc label node <node> node-role.kubernetes.io/gpu-aas=""
+#                 and match on it here instead.
+#
+# tolerations: if the 4 GPU nodes are tainted (recommended, so nothing else
+#              schedules onto them) Kueue injects these tolerations so admitted
+#              GPU workloads can still land. Match your actual taint key.
+# -----------------------------------------------------------------------------
+apiVersion: kueue.x-k8s.io/v1beta1   # v1beta2 is available on Kueue 0.11+/RHBK 1.x; v1beta1 is still served everywhere
+kind: ResourceFlavor
+metadata:
+  name: gpu-flavor
+spec:
+  nodeLabels:
+    nvidia.com/gpu.present: "true"     # <-- change to the label that selects ONLY your 4 GPU nodes
+  tolerations:
+    - key: nvidia.com/gpu              # <-- change to match the taint on your GPU nodes (if any)
+      operator: Exists
+      effect: NoSchedule

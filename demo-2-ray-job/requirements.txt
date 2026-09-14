@@ -1,0 +1,4 @@
+# CodeFlare SDK for submitting Ray workloads through Kueue.
+# The Standard Data Science / distributed-workloads workbench images in
+# OpenShift AI already include this — only needed if you run elsewhere.
+codeflare-sdk>=0.29.0

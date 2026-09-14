@@ -1,0 +1,66 @@
+# -----------------------------------------------------------------------------
+# DEMO 1 — a regular training Job, queued by Kueue.
+# -----------------------------------------------------------------------------
+# This is a standard Kubernetes batch/v1 Job. The ONLY things that make it a
+# Kueue workload are:
+#   1. the label   kueue.x-k8s.io/queue-name: gpu-local-queue
+#   2. suspend: true  — Kueue flips this to false when it admits the job.
+#      (In a kueue-managed namespace the webhook would add suspend for you, but
+#       setting it explicitly keeps the manifest portable.)
+#
+# The container runs a tiny PyTorch "training" loop on the GPU so you can see a
+# real GPU workload get admitted and complete.
+#
+# Submit:  oc create -f training-job.yaml
+# Watch:   oc get workloads -n gpu-aas-demo
+#          oc get pods -n gpu-aas-demo -w
+# Logs:    oc logs -n gpu-aas-demo job/sample-training
+#
+# To SEE queueing in action, submit it several times (bump the GPU request or
+# lower the ClusterQueue quota) and watch later copies sit Pending until earlier
+# ones finish.
+# -----------------------------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sample-training
+  namespace: gpu-aas-demo
+  labels:
+    kueue.x-k8s.io/queue-name: gpu-local-queue
+spec:
+  suspend: true
+  parallelism: 1
+  completions: 1
+  backoffLimit: 0
+  template:
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: trainer
+          image: pytorch/pytorch:2.5.1-cuda12.4-cudnn9-runtime
+          command: ["python", "-c"]
+          args:
+            - |
+              import torch, time
+              assert torch.cuda.is_available(), "No GPU visible to the pod!"
+              dev = torch.device("cuda")
+              print("Training on:", torch.cuda.get_device_name(0), flush=True)
+              x = torch.randn(4096, 4096, device=dev)
+              w = torch.randn(4096, 4096, device=dev, requires_grad=True)
+              opt = torch.optim.SGD([w], lr=1e-4)
+              for step in range(200):
+                  loss = (x @ w).pow(2).mean()
+                  opt.zero_grad(); loss.backward(); opt.step()
+                  if step % 20 == 0:
+                      print(f"step {step:3d}  loss {loss.item():.4f}", flush=True)
+                  time.sleep(0.05)
+              print("Training complete.", flush=True)
+          resources:
+            requests:
+              cpu: "2"
+              memory: 8Gi
+              nvidia.com/gpu: "1"
+            limits:
+              cpu: "4"
+              memory: 16Gi
+              nvidia.com/gpu: "1"   # GPU request == limit is required
