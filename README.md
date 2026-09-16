@@ -13,14 +13,6 @@ so Kueue queues and admits them against one GPU budget. When the budget is full,
 later submissions sit `Pending` until earlier ones finish. That queueing is the
 whole point of GPU-aaS.
 
-## One thing worth knowing up front
-
-The CodeFlare SDK handles **Ray** (RayCluster / RayJob). It does **not** create
-PyTorchJobs — those are created by the **Kubeflow Training Operator** and its
-own Python SDK. Kueue governs both identically. Demo 3 is therefore built the
-correct, current way; if you expected a single SDK for both, that's the reason
-it's split.
-
 ## Layout
 
 ```
